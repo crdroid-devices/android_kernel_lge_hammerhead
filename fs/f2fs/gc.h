@@ -35,9 +35,15 @@ struct f2fs_gc_kthread {
 	unsigned int gc_idle;
 };
 
+<<<<<<< HEAD
 struct inode_entry {
 	struct list_head list;
 	struct inode *inode;
+=======
+struct gc_inode_list {
+	struct list_head ilist;
+	struct radix_tree_root iroot;
+>>>>>>> cm/cm-13.0
 };
 
 /*
@@ -64,6 +70,7 @@ static inline block_t limit_free_user_blocks(struct f2fs_sb_info *sbi)
 	return (long)(reclaimable_user_blocks * LIMIT_FREE_BLOCK) / 100;
 }
 
+<<<<<<< HEAD
 static inline long increase_sleep_time(struct f2fs_gc_kthread *gc_th, long wait)
 {
 	if (wait == gc_th->no_gc_sleep_time)
@@ -84,6 +91,28 @@ static inline long decrease_sleep_time(struct f2fs_gc_kthread *gc_th, long wait)
 	if (wait <= gc_th->min_sleep_time)
 		wait = gc_th->min_sleep_time;
 	return wait;
+=======
+static inline void increase_sleep_time(struct f2fs_gc_kthread *gc_th,
+								long *wait)
+{
+	if (*wait == gc_th->no_gc_sleep_time)
+		return;
+
+	*wait += gc_th->min_sleep_time;
+	if (*wait > gc_th->max_sleep_time)
+		*wait = gc_th->max_sleep_time;
+}
+
+static inline void decrease_sleep_time(struct f2fs_gc_kthread *gc_th,
+								long *wait)
+{
+	if (*wait == gc_th->no_gc_sleep_time)
+		*wait = gc_th->max_sleep_time;
+
+	*wait -= gc_th->min_sleep_time;
+	if (*wait <= gc_th->min_sleep_time)
+		*wait = gc_th->min_sleep_time;
+>>>>>>> cm/cm-13.0
 }
 
 static inline bool has_enough_invalid_blocks(struct f2fs_sb_info *sbi)
@@ -91,7 +120,11 @@ static inline bool has_enough_invalid_blocks(struct f2fs_sb_info *sbi)
 	block_t invalid_user_blocks = sbi->user_block_count -
 					written_block_count(sbi);
 	/*
+<<<<<<< HEAD
 	 * Background GC is triggered with the following condition.
+=======
+	 * Background GC is triggered with the following conditions.
+>>>>>>> cm/cm-13.0
 	 * 1. There are a number of invalid blocks.
 	 * 2. There is not enough free space.
 	 */

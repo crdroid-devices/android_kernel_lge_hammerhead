@@ -17,9 +17,12 @@
 #include "xattr.h"
 #include "acl.h"
 
+<<<<<<< HEAD
 #define get_inode_mode(i)	((is_inode_flag_set(F2FS_I(i), FI_ACL_MODE)) ? \
 					(F2FS_I(i)->i_acl_mode) : ((i)->i_mode))
 
+=======
+>>>>>>> cm/cm-13.0
 static inline size_t f2fs_acl_size(int count)
 {
 	if (count <= 4) {
@@ -65,7 +68,11 @@ static struct posix_acl *f2fs_acl_from_disk(const char *value, size_t size)
 	if (count == 0)
 		return NULL;
 
+<<<<<<< HEAD
 	acl = posix_acl_alloc(count, GFP_KERNEL);
+=======
+	acl = posix_acl_alloc(count, GFP_NOFS);
+>>>>>>> cm/cm-13.0
 	if (!acl)
 		return ERR_PTR(-ENOMEM);
 
@@ -111,7 +118,11 @@ static void *f2fs_acl_to_disk(const struct posix_acl *acl, size_t *size)
 	int i;
 
 	f2fs_acl = kmalloc(sizeof(struct f2fs_acl_header) + acl->a_count *
+<<<<<<< HEAD
 			sizeof(struct f2fs_acl_entry), GFP_KERNEL);
+=======
+			sizeof(struct f2fs_acl_entry), GFP_NOFS);
+>>>>>>> cm/cm-13.0
 	if (!f2fs_acl)
 		return ERR_PTR(-ENOMEM);
 
@@ -149,7 +160,12 @@ fail:
 	return ERR_PTR(-EINVAL);
 }
 
+<<<<<<< HEAD
 struct posix_acl *f2fs_get_acl(struct inode *inode, int type)
+=======
+static struct posix_acl *__f2fs_get_acl(struct inode *inode, int type,
+						struct page *dpage)
+>>>>>>> cm/cm-13.0
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
 	int name_index = F2FS_XATTR_INDEX_POSIX_ACL_DEFAULT;
@@ -167,12 +183,21 @@ struct posix_acl *f2fs_get_acl(struct inode *inode, int type)
 	if (type == ACL_TYPE_ACCESS)
 		name_index = F2FS_XATTR_INDEX_POSIX_ACL_ACCESS;
 
+<<<<<<< HEAD
 	retval = f2fs_getxattr(inode, name_index, "", NULL, 0);
+=======
+	retval = f2fs_getxattr(inode, name_index, "", NULL, 0, dpage);
+>>>>>>> cm/cm-13.0
 	if (retval > 0) {
 		value = kmalloc(retval, GFP_F2FS_ZERO);
 		if (!value)
 			return ERR_PTR(-ENOMEM);
+<<<<<<< HEAD
 		retval = f2fs_getxattr(inode, name_index, "", value, retval);
+=======
+		retval = f2fs_getxattr(inode, name_index, "", value,
+							retval, dpage);
+>>>>>>> cm/cm-13.0
 	}
 
 	if (retval > 0)
@@ -189,6 +214,14 @@ struct posix_acl *f2fs_get_acl(struct inode *inode, int type)
 	return acl;
 }
 
+<<<<<<< HEAD
+=======
+struct posix_acl *f2fs_get_acl(struct inode *inode, int type)
+{
+	return __f2fs_get_acl(inode, type, NULL);
+}
+
+>>>>>>> cm/cm-13.0
 static int f2fs_set_acl(struct inode *inode, int type,
 			struct posix_acl *acl, struct page *ipage)
 {
@@ -230,22 +263,39 @@ static int f2fs_set_acl(struct inode *inode, int type,
 	if (acl) {
 		value = f2fs_acl_to_disk(acl, &size);
 		if (IS_ERR(value)) {
+<<<<<<< HEAD
 			cond_clear_inode_flag(fi, FI_ACL_MODE);
+=======
+			clear_inode_flag(fi, FI_ACL_MODE);
+>>>>>>> cm/cm-13.0
 			return (int)PTR_ERR(value);
 		}
 	}
 
+<<<<<<< HEAD
 	error = f2fs_setxattr(inode, name_index, "", value, size, ipage);
+=======
+	error = f2fs_setxattr(inode, name_index, "", value, size, ipage, 0);
+>>>>>>> cm/cm-13.0
 
 	kfree(value);
 	if (!error)
 		set_cached_acl(inode, type, acl);
 
+<<<<<<< HEAD
 	cond_clear_inode_flag(fi, FI_ACL_MODE);
 	return error;
 }
 
 int f2fs_init_acl(struct inode *inode, struct inode *dir, struct page *ipage)
+=======
+	clear_inode_flag(fi, FI_ACL_MODE);
+	return error;
+}
+
+int f2fs_init_acl(struct inode *inode, struct inode *dir, struct page *ipage,
+							struct page *dpage)
+>>>>>>> cm/cm-13.0
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(dir->i_sb);
 	struct posix_acl *acl = NULL;
@@ -253,12 +303,20 @@ int f2fs_init_acl(struct inode *inode, struct inode *dir, struct page *ipage)
 
 	if (!S_ISLNK(inode->i_mode)) {
 		if (test_opt(sbi, POSIX_ACL)) {
+<<<<<<< HEAD
 			acl = f2fs_get_acl(dir, ACL_TYPE_DEFAULT);
 			if (IS_ERR(acl))
 				return PTR_ERR(acl);
 		}
 		if (!acl && !(test_opt(sbi, ANDROID_EMU) &&
 				F2FS_I(inode)->i_advise & FADVISE_ANDROID_EMU))
+=======
+			acl = __f2fs_get_acl(dir, ACL_TYPE_DEFAULT, dpage);
+			if (IS_ERR(acl))
+				return PTR_ERR(acl);
+		}
+		if (!acl)
+>>>>>>> cm/cm-13.0
 			inode->i_mode &= ~current_umask();
 	}
 
@@ -305,6 +363,7 @@ int f2fs_acl_chmod(struct inode *inode)
 	return error;
 }
 
+<<<<<<< HEAD
 int f2fs_android_emu(struct f2fs_sb_info *sbi, struct inode *inode,
 		u32 *uid, u32 *gid, umode_t *mode)
 {
@@ -331,6 +390,8 @@ int f2fs_android_emu(struct f2fs_sb_info *sbi, struct inode *inode,
 	return 0;
 }
 
+=======
+>>>>>>> cm/cm-13.0
 static size_t f2fs_xattr_list_acl(struct dentry *dentry, char *list,
 		size_t list_size, const char *name, size_t name_len, int type)
 {

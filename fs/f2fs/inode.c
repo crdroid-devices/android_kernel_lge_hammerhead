@@ -50,6 +50,18 @@ static void __get_inode_rdev(struct inode *inode, struct f2fs_inode *ri)
 	}
 }
 
+<<<<<<< HEAD
+=======
+static bool __written_first_block(struct f2fs_inode *ri)
+{
+	block_t addr = le32_to_cpu(ri->i_addr[0]);
+
+	if (addr != NEW_ADDR && addr != NULL_ADDR)
+		return true;
+	return false;
+}
+
+>>>>>>> cm/cm-13.0
 static void __set_inode_rdev(struct inode *inode, struct f2fs_inode *ri)
 {
 	if (S_ISCHR(inode->i_mode) || S_ISBLK(inode->i_mode)) {
@@ -66,9 +78,34 @@ static void __set_inode_rdev(struct inode *inode, struct f2fs_inode *ri)
 	}
 }
 
+<<<<<<< HEAD
 static int do_read_inode(struct inode *inode)
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
+=======
+static void __recover_inline_status(struct inode *inode, struct page *ipage)
+{
+	void *inline_data = inline_data_addr(ipage);
+	__le32 *start = inline_data;
+	__le32 *end = start + MAX_INLINE_DATA / sizeof(__le32);
+
+	while (start < end) {
+		if (*start++) {
+			f2fs_wait_on_page_writeback(ipage, NODE);
+
+			set_inode_flag(F2FS_I(inode), FI_DATA_EXIST);
+			set_raw_inline(F2FS_I(inode), F2FS_INODE(ipage));
+			set_page_dirty(ipage);
+			return;
+		}
+	}
+	return;
+}
+
+static int do_read_inode(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+>>>>>>> cm/cm-13.0
 	struct f2fs_inode_info *fi = F2FS_I(inode);
 	struct page *node_page;
 	struct f2fs_inode *ri;
@@ -77,6 +114,10 @@ static int do_read_inode(struct inode *inode)
 	if (check_nid_range(sbi, inode->i_ino)) {
 		f2fs_msg(inode->i_sb, KERN_ERR, "bad inode number: %lu",
 			 (unsigned long) inode->i_ino);
+<<<<<<< HEAD
+=======
+		WARN_ON(1);
+>>>>>>> cm/cm-13.0
 		return -EINVAL;
 	}
 
@@ -109,6 +150,7 @@ static int do_read_inode(struct inode *inode)
 	fi->i_pino = le32_to_cpu(ri->i_pino);
 	fi->i_dir_level = ri->i_dir_level;
 
+<<<<<<< HEAD
 	get_extent_info(&fi->ext, ri->i_ext);
 	get_inline_info(fi, ri);
 
@@ -116,6 +158,28 @@ static int do_read_inode(struct inode *inode)
 	__get_inode_rdev(inode, ri);
 
 	f2fs_put_page(node_page, 1);
+=======
+	f2fs_init_extent_tree(inode, &ri->i_ext);
+
+	get_inline_info(fi, ri);
+
+	/* check data exist */
+	if (f2fs_has_inline_data(inode) && !f2fs_exist_data(inode))
+		__recover_inline_status(inode, node_page);
+
+	/* get rdev by using inline_info */
+	__get_inode_rdev(inode, ri);
+
+	if (__written_first_block(ri))
+		set_inode_flag(F2FS_I(inode), FI_FIRST_BLOCK_WRITTEN);
+
+	f2fs_put_page(node_page, 1);
+
+	stat_inc_inline_xattr(inode);
+	stat_inc_inline_inode(inode);
+	stat_inc_inline_dir(inode);
+
+>>>>>>> cm/cm-13.0
 	return 0;
 }
 
@@ -154,9 +218,18 @@ make_now:
 		inode->i_op = &f2fs_dir_inode_operations;
 		inode->i_fop = &f2fs_dir_operations;
 		inode->i_mapping->a_ops = &f2fs_dblock_aops;
+<<<<<<< HEAD
 		mapping_set_gfp_mask(inode->i_mapping, GFP_F2FS_ZERO);
 	} else if (S_ISLNK(inode->i_mode)) {
 		inode->i_op = &f2fs_symlink_inode_operations;
+=======
+		mapping_set_gfp_mask(inode->i_mapping, GFP_F2FS_HIGH_ZERO);
+	} else if (S_ISLNK(inode->i_mode)) {
+		if (f2fs_encrypted_inode(inode))
+			inode->i_op = &f2fs_encrypted_symlink_inode_operations;
+		else
+			inode->i_op = &f2fs_symlink_inode_operations;
+>>>>>>> cm/cm-13.0
 		inode->i_mapping->a_ops = &f2fs_dblock_aops;
 	} else if (S_ISCHR(inode->i_mode) || S_ISBLK(inode->i_mode) ||
 			S_ISFIFO(inode->i_mode) || S_ISSOCK(inode->i_mode)) {
@@ -191,7 +264,16 @@ void update_inode(struct inode *inode, struct page *node_page)
 	ri->i_links = cpu_to_le32(inode->i_nlink);
 	ri->i_size = cpu_to_le64(i_size_read(inode));
 	ri->i_blocks = cpu_to_le64(inode->i_blocks);
+<<<<<<< HEAD
 	set_raw_extent(&F2FS_I(inode)->ext, &ri->i_ext);
+=======
+
+	if (F2FS_I(inode)->extent_tree)
+		set_raw_extent(&F2FS_I(inode)->extent_tree->largest,
+							&ri->i_ext);
+	else
+		memset(&ri->i_ext, 0, sizeof(ri->i_ext));
+>>>>>>> cm/cm-13.0
 	set_raw_inline(F2FS_I(inode), ri);
 
 	ri->i_atime = cpu_to_le64(inode->i_atime.tv_sec);
@@ -216,7 +298,11 @@ void update_inode(struct inode *inode, struct page *node_page)
 
 void update_inode_page(struct inode *inode)
 {
+<<<<<<< HEAD
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
+=======
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+>>>>>>> cm/cm-13.0
 	struct page *node_page;
 retry:
 	node_page = get_node_page(sbi, inode->i_ino);
@@ -236,7 +322,11 @@ retry:
 
 int f2fs_write_inode(struct inode *inode, struct writeback_control *wbc)
 {
+<<<<<<< HEAD
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
+=======
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+>>>>>>> cm/cm-13.0
 
 	if (inode->i_ino == F2FS_NODE_INO(sbi) ||
 			inode->i_ino == F2FS_META_INO(sbi))
@@ -246,6 +336,7 @@ int f2fs_write_inode(struct inode *inode, struct writeback_control *wbc)
 		return 0;
 
 	/*
+<<<<<<< HEAD
 	 * We need to lock here to prevent from producing dirty node pages
 	 * during the urgent cleaning time when runing out of free sections.
 	 */
@@ -256,6 +347,14 @@ int f2fs_write_inode(struct inode *inode, struct writeback_control *wbc)
 	if (wbc)
 		f2fs_balance_fs(sbi);
 
+=======
+	 * We need to balance fs here to prevent from producing dirty node pages
+	 * during the urgent cleaning time when runing out of free sections.
+	 */
+	update_inode_page(inode);
+
+	f2fs_balance_fs(sbi);
+>>>>>>> cm/cm-13.0
 	return 0;
 }
 
@@ -264,13 +363,25 @@ int f2fs_write_inode(struct inode *inode, struct writeback_control *wbc)
  */
 void f2fs_evict_inode(struct inode *inode)
 {
+<<<<<<< HEAD
 	struct f2fs_sb_info *sbi = F2FS_SB(inode->i_sb);
+=======
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+	nid_t xnid = fi->i_xattr_nid;
+	int err = 0;
+
+	/* some remained atomic pages should discarded */
+	if (f2fs_is_atomic_file(inode))
+		commit_inmem_pages(inode, true);
+>>>>>>> cm/cm-13.0
 
 	trace_f2fs_evict_inode(inode);
 	truncate_inode_pages(&inode->i_data, 0);
 
 	if (inode->i_ino == F2FS_NODE_INO(sbi) ||
 			inode->i_ino == F2FS_META_INO(sbi))
+<<<<<<< HEAD
 		goto no_delete;
 
 	f2fs_bug_on(get_dirty_dents(inode));
@@ -293,3 +404,108 @@ void f2fs_evict_inode(struct inode *inode)
 no_delete:
 	end_writeback(inode);
 }
+=======
+		goto out_clear;
+
+	f2fs_bug_on(sbi, get_dirty_pages(inode));
+	remove_dirty_dir_inode(inode);
+
+	f2fs_destroy_extent_tree(inode);
+
+	if (inode->i_nlink || is_bad_inode(inode))
+		goto no_delete;
+
+	set_inode_flag(fi, FI_NO_ALLOC);
+	i_size_write(inode, 0);
+
+	if (F2FS_HAS_BLOCKS(inode))
+		err = f2fs_truncate(inode, true);
+
+	if (!err) {
+		f2fs_lock_op(sbi);
+		err = remove_inode_page(inode);
+		f2fs_unlock_op(sbi);
+	}
+
+no_delete:
+	stat_dec_inline_xattr(inode);
+	stat_dec_inline_dir(inode);
+	stat_dec_inline_inode(inode);
+
+	invalidate_mapping_pages(NODE_MAPPING(sbi), inode->i_ino, inode->i_ino);
+	if (xnid)
+		invalidate_mapping_pages(NODE_MAPPING(sbi), xnid, xnid);
+	if (is_inode_flag_set(fi, FI_APPEND_WRITE))
+		add_dirty_inode(sbi, inode->i_ino, APPEND_INO);
+	if (is_inode_flag_set(fi, FI_UPDATE_WRITE))
+		add_dirty_inode(sbi, inode->i_ino, UPDATE_INO);
+	if (is_inode_flag_set(fi, FI_FREE_NID)) {
+		if (err && err != -ENOENT)
+			alloc_nid_done(sbi, inode->i_ino);
+		else
+			alloc_nid_failed(sbi, inode->i_ino);
+		clear_inode_flag(fi, FI_FREE_NID);
+	}
+
+	if (err && err != -ENOENT) {
+		if (!exist_written_data(sbi, inode->i_ino, ORPHAN_INO)) {
+			/*
+			 * get here because we failed to release resource
+			 * of inode previously, reminder our user to run fsck
+			 * for fixing.
+			 */
+			set_sbi_flag(sbi, SBI_NEED_FSCK);
+			f2fs_msg(sbi->sb, KERN_WARNING,
+				"inode (ino:%lu) resource leak, run fsck "
+				"to fix this issue!", inode->i_ino);
+		}
+	}
+out_clear:
+#ifdef CONFIG_F2FS_FS_ENCRYPTION
+	if (fi->i_crypt_info)
+		f2fs_free_encryption_info(inode, fi->i_crypt_info);
+#endif
+	end_writeback(inode);
+}
+
+/* caller should call f2fs_lock_op() */
+void handle_failed_inode(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	int err = 0;
+
+	clear_nlink(inode);
+	make_bad_inode(inode);
+	unlock_new_inode(inode);
+
+	i_size_write(inode, 0);
+	if (F2FS_HAS_BLOCKS(inode))
+		err = f2fs_truncate(inode, false);
+
+	if (!err)
+		err = remove_inode_page(inode);
+
+	/*
+	 * if we skip truncate_node in remove_inode_page bacause we failed
+	 * before, it's better to find another way to release resource of
+	 * this inode (e.g. valid block count, node block or nid). Here we
+	 * choose to add this inode to orphan list, so that we can call iput
+	 * for releasing in orphan recovery flow.
+	 *
+	 * Note: we should add inode to orphan list before f2fs_unlock_op()
+	 * so we can prevent losing this orphan when encoutering checkpoint
+	 * and following suddenly power-off.
+	 */
+	if (err && err != -ENOENT) {
+		err = acquire_orphan_inode(sbi);
+		if (!err)
+			add_orphan_inode(sbi, inode->i_ino);
+	}
+
+	set_inode_flag(F2FS_I(inode), FI_FREE_NID);
+	f2fs_unlock_op(sbi);
+
+	/* iput will drop the inode object */
+	iput(inode);
+}
+>>>>>>> cm/cm-13.0
