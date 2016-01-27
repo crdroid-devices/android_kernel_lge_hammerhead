@@ -35,13 +35,10 @@
 #define F2FS_XATTR_INDEX_LUSTRE			5
 #define F2FS_XATTR_INDEX_SECURITY		6
 #define F2FS_XATTR_INDEX_ADVISE			7
-<<<<<<< HEAD
-=======
 /* Should be same as EXT4_XATTR_INDEX_ENCRYPTION */
 #define F2FS_XATTR_INDEX_ENCRYPTION		9
 
 #define F2FS_XATTR_NAME_ENCRYPTION_CONTEXT	"c"
->>>>>>> cm/cm-13.0
 
 struct f2fs_xattr_header {
 	__le32  h_magic;        /* magic number for identification */
@@ -123,27 +120,13 @@ extern const struct xattr_handler f2fs_xattr_security_handler;
 extern const struct xattr_handler *f2fs_xattr_handlers[];
 
 extern int f2fs_setxattr(struct inode *, int, const char *,
-<<<<<<< HEAD
-				const void *, size_t, struct page *);
-extern int f2fs_getxattr(struct inode *, int, const char *, void *, size_t);
-=======
 				const void *, size_t, struct page *, int);
 extern int f2fs_getxattr(struct inode *, int, const char *, void *,
 						size_t, struct page *);
->>>>>>> cm/cm-13.0
 extern ssize_t f2fs_listxattr(struct dentry *, char *, size_t);
 #else
 
 #define f2fs_xattr_handlers	NULL
-<<<<<<< HEAD
-static inline int f2fs_setxattr(struct inode *inode, int name_index,
-		const char *name, const void *value, size_t value_len)
-{
-	return -EOPNOTSUPP;
-}
-static inline int f2fs_getxattr(struct inode *inode, int name_index,
-		const char *name, void *buffer, size_t buffer_size)
-=======
 static inline int f2fs_setxattr(struct inode *inode, int index,
 		const char *name, const void *value, size_t size, int flags)
 {
@@ -152,7 +135,6 @@ static inline int f2fs_setxattr(struct inode *inode, int index,
 static inline int f2fs_getxattr(struct inode *inode, int index,
 			const char *name, void *buffer,
 			size_t buffer_size, struct page *dpage)
->>>>>>> cm/cm-13.0
 {
 	return -EOPNOTSUPP;
 }

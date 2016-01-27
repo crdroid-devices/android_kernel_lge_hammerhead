@@ -38,12 +38,8 @@ struct f2fs_acl_header {
 
 extern struct posix_acl *f2fs_get_acl(struct inode *, int);
 extern int f2fs_acl_chmod(struct inode *);
-<<<<<<< HEAD
-extern int f2fs_init_acl(struct inode *, struct inode *, struct page *);
-=======
 extern int f2fs_init_acl(struct inode *, struct inode *, struct page *,
 							struct page *);
->>>>>>> cm/cm-13.0
 #else
 #define f2fs_check_acl	NULL
 #define f2fs_get_acl	NULL
@@ -55,11 +51,7 @@ static inline int f2fs_acl_chmod(struct inode *inode)
 }
 
 static inline int f2fs_init_acl(struct inode *inode, struct inode *dir,
-<<<<<<< HEAD
-							struct page *page)
-=======
 				struct page *ipage, struct page *dpage)
->>>>>>> cm/cm-13.0
 {
 	return 0;
 }
